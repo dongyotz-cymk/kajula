@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kujala 前膝痛量表（AKPS）互動版</title>
+  <style>
+    :root{--bg:#f8fafc;--card:#ffffff;--text:#111827;--muted:#6b7280;--ring:#e5e7eb;--accent:#0ea5e9}
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,Noto Sans TC,Helvetica,Arial}
+    .container{max-width:960px;margin:24px auto 96px;padding:0 16px}
+    header{position:sticky;top:0;background:rgba(248,250,252,.9);backdrop-filter:saturate(150%) blur(6px);border-bottom:1px solid var(--ring);z-index:10}
+    header .wrap{max-width:960px;margin:0 auto;padding:10px 16px;display:flex;gap:16px;align-items:center;justify-content:space-between}
+    h1{font-size:clamp(20px,3vw,28px);margin:12px 0}
+    .card{background:var(--card);border:1px solid var(--ring);border-radius:16px;padding:20px;box-shadow:0 6px 18px rgba(0,0,0,.04)}
+    .intro{margin:12px 0 20px;color:var(--muted)}
+
+    .scorebar{display:flex;gap:12px;align-items:center}
+    .score{font-weight:700;font-size:18px}
+    .progress{flex:1;height:10px;background:linear-gradient(to right,#22c55e,#f59e0b,#ef4444);border-radius:999px;position:relative}
+    .progress .thumb{position:absolute;top:50%;transform:translate(-50%,-50%);width:16px;height:16px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px rgba(14,165,233,.25)}
+
+    .q{margin:16px 0 20px}
+    .q h3{margin:0 0 10px;font-size:18px}
+    .gradient-bar{height:8px;width:100%;background:linear-gradient(to right,#22c55e,#f59e0b,#ef4444);border-radius:999px;margin:6px 0 12px}
+    .options{display:flex;flex-wrap:wrap;gap:8px}
+    .opt{position:relative}
+    .opt input{position:absolute;opacity:0;pointer-events:none}
+    .opt label{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--ring);border-radius:999px;cursor:pointer;user-select:none;background:#fff;transition:.18s ease}
+    .opt label .pts{font-variant-numeric:tabular-nums;color:var(--muted);font-size:12px}
+    .opt input:checked+label{border-color:var(--accent);box-shadow:0 0 0 3px rgba(14,165,233,.25)}
+
+    .legend{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:8px}
+    .legend .chip{width:10px;height:10px;border-radius:3px}
+
+    .footer{position:fixed;inset:auto 0 0 0;background:#0b1220;color:#fff;padding:12px 16px;box-shadow:0 -6px 18px rgba(0,0,0,.2)}
+    .footer .wrap{max-width:960px;margin:0 auto;display:flex;align-items:center;gap:16px;justify-content:space-between}
+    .hint{color:#cbd5e1;font-size:14px}
+    .btns{display:flex;gap:8px;flex-wrap:wrap}
+    button{appearance:none;border:1px solid #334155;background:#111827;color:#fff;padding:8px 12px;border-radius:10px;cursor:pointer}
+    button.secondary{background:#0f172a}
+
+    .result{margin:16px 0 0;padding:16px;border-radius:12px;border:1px solid var(--ring);background:#f1f5f9}
+    .result h2{margin:0 0 8px;font-size:20px}
+    .result p{margin:6px 0}
+    .table{width:100%;border-collapse:collapse;margin-top:8px}
+    .table th,.table td{border:1px solid var(--ring);padding:6px 8px;text-align:left}
+    .table th{background:#eef2f7}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <h1>Kujala 前膝痛量表（AKPS）互動版</h1>
+      <div class="legend" aria-hidden="true">
+        <span class="chip" style="background:#22c55e"></span>較佳
+        <span class="chip" style="background:#f59e0b"></span>中等
+        <span class="chip" style="background:#ef4444"></span>較差
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="card">
+      <p class="intro">此量表共有 <strong>13 題</strong>，用於評估與<strong>髕股疼痛（前膝痛）</strong>相關的症狀與功能；請依<strong>最近狀況</strong>作答，每題僅選一項。</p>
+      <ul class="intro">
+        <li>滿分 <strong>100 分</strong>（分數越高代表功能越好）。</li>
+        <li>加總後<strong>分數越低</strong>，表示症狀/功能受限<strong>越大</strong>。</li>
+      </ul>
+      <div class="scorebar" role="status" aria-live="polite">
+        <div class="score"><span id="currentScore">0</span>/100 分</div>
+        <div class="progress" aria-hidden="true"><span class="thumb" id="thumb" style="left:0%"></span></div>
+        <div class="hint" id="answeredHint">已答 0 / 13 題</div>
+      </div>
+    </section>
+
+    <!-- 問題列表 -->
+    <div id="questions"></div>
+
+    <!-- 結果解讀：置於尾端 -->
+    <section class="result" id="resultCard">
+      <h2>結果解讀</h2>
+      <p id="resultText" style="color:#334155">尚未完成作答。完成更多題目後，這裡會即時顯示分級與建議。</p>
+      <ul id="adviceList" style="margin:0 0 0 18px"></ul>
+      <p id="resultTotal" style="margin-top:8px;font-weight:600">總分：-- / 100</p>
+      <details style="margin-top:8px">
+        <summary><strong>紅旗警訊（需盡速就醫）點按一下顯示</strong></summary>
+        <ul style="margin:8px 0 0 18px;color:#475569">
+          <li>急性外傷後劇痛、明顯畸形或無法負重</li>
+          <li>持續膝蓋卡住/打不直、反覆脫臼感</li>
+          <li>明顯腫脹合併發燒、紅熱、傷口流膿</li>
+          <li>夜間痛到醒來且逐日加劇</li>
+        </ul>
+      </details>
+      <hr style="border:none;border-top:1px solid var(--ring);margin:12px 0" />
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <button id="saveRecord" type="button">加入追蹤</button>
+        <button id="clearHistory" class="secondary" type="button">清除追蹤</button>
+        <span class="hint">紀錄每次 AKPS 分數，觀察趨勢。</span>
+      </div>
+      <div id="historyWrap" style="margin-top:8px"></div>
+    </section>
+
+  </main>
+
+  <footer class="footer">
+    <div class="wrap">
+      <div>
+        <div><strong>分數解讀：</strong>此為自評工具，僅供衛教與追蹤使用；如分數下降或症狀惡化，請諮詢醫師/物理治療師。</div>
+      </div>
+      <div class="btns">
+        <button id="resetBtn" class="secondary" type="button">清空重填</button>
+        <button id="printBtn" type="button">列印/存成 PDF</button>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+  // 13 題資料
+  const QUESTIONS = [
+    { id:'q1',  title:'1. 跛行（Limp）', options:[{t:'無',p:5},{t:'輕微或偶發',p:3},{t:'持續',p:0}]},
+    { id:'q2',  title:'2. 支撐/負重（Support/Weight Bearing）', options:[{t:'無痛可完全負重',p:5},{t:'可負重但疼痛',p:3},{t:'無法負重',p:0}]},
+    { id:'q3',  title:'3. 行走（Walking）', options:[{t:'不受限',p:5},{t:'可行走超過 2 公里',p:3},{t:'可行走 1–2 公里',p:2},{t:'無法行走',p:0}]},
+    { id:'q4',  title:'4. 上下樓梯（Stairs）', options:[{t:'無困難',p:10},{t:'下樓時輕微疼痛',p:8},{t:'上下樓皆痛',p:5},{t:'無法上下樓',p:0}]},
+    { id:'q5',  title:'5. 蹲下（Squatting）', options:[{t:'無困難',p:5},{t:'重複蹲下會痛',p:4},{t:'每次蹲下都會痛',p:3},{t:'僅能部分負重下進行',p:2},{t:'無法蹲下',p:0}]},
+    { id:'q6',  title:'6. 跑步（Running）', options:[{t:'無困難',p:10},{t:'跑超過 2 公里後才痛',p:8},{t:'一開始就有輕微疼痛',p:6},{t:'劇痛',p:3},{t:'無法跑步',p:0}]},
+    { id:'q7',  title:'7. 跳躍（Jumping）', options:[{t:'無困難',p:10},{t:'稍有困難',p:7},{t:'持續疼痛',p:2},{t:'無法跳躍',p:0}]},
+    { id:'q8',  title:'8. 久坐屈膝（Prolonged Sitting with Knees Flexed）', options:[{t:'無困難',p:10},{t:'運動後久坐才會痛',p:8},{t:'持續疼痛',p:6},{t:'會痛到必須暫時伸直膝蓋',p:4},{t:'無法久坐',p:0}]},
+    { id:'q9',  title:'9. 疼痛（Pain）', options:[{t:'無',p:10},{t:'輕微且偶發',p:8},{t:'會影響睡眠',p:6},{t:'偶爾劇痛',p:3},{t:'持續且劇痛',p:0}]},
+    { id:'q10', title:'10. 腫脹（Swelling）', options:[{t:'無',p:10},{t:'僅劇烈活動後',p:8},{t:'日常活動後',p:6},{t:'幾乎每晚都有',p:4},{t:'持續性腫脹',p:0}]},
+    { id:'q11', title:'11. 髕骨異常疼痛移動（半脫位）（Abnormal Painful Patellar Movements / Subluxations）', options:[{t:'無',p:10},{t:'僅在運動時偶發',p:6},{t:'日常活動中偶發',p:4},{t:'至少一次有紀錄的脫臼',p:2},{t:'兩次以上脫臼',p:0}]},
+    { id:'q12', title:'12. 大腿肌萎縮（Atrophy of Thigh）', options:[{t:'無',p:5},{t:'輕度',p:3},{t:'重度',p:0}]},
+    { id:'q13', title:'13. 膝關節屈曲受限（Flexion Deficiency）', options:[{t:'無',p:5},{t:'輕度',p:3},{t:'重度',p:0}]}
+  ];
+
+  const $qs = document.getElementById('questions');
+  const scoreEl = document.getElementById('currentScore');
+  const hintEl  = document.getElementById('answeredHint');
+  const thumbEl = document.getElementById('thumb');
+  const resultText = document.getElementById('resultText');
+  const adviceList = document.getElementById('adviceList');
+  const resultTotal = document.getElementById('resultTotal');
+  const historyWrap = document.getElementById('historyWrap');
+
+  // 直接用 JS 動態建立題目，不使用 <template>
+  function render(){
+    $qs.innerHTML = '';
+    QUESTIONS.forEach(q => {
+      const sec = document.createElement('section');
+      sec.className = 'card q';
+      sec.setAttribute('data-qid', q.id);
+      sec.innerHTML = `
+        <h3>${q.title}</h3>
+        <div class="gradient-bar" aria-hidden="true"></div>
+        <div class="options" role="group"></div>
+      `;
+      const opts = sec.querySelector('.options');
+      q.options.forEach((o, i) => {
+        const id = `${q.id}_${i}`;
+        const w = document.createElement('div');
+        w.className = 'opt';
+        w.innerHTML = `
+          <input type="radio" id="${id}" name="${q.id}" value="${o.p}">
+          <label for="${id}"><span class="txt">${o.t}</span> <span class="pts">${o.p} 分</span></label>
+        `;
+        opts.appendChild(w);
+      });
+      $qs.appendChild(sec);
+    });
+  }
+
+  function getInterpretation(sum){
+    if(sum>=85) return {level:'良好',tips:['維持股四頭肌/臀肌強化，每週 2–3 次','活動量循序漸進（10% 原則）','運動後不適可冰敷 10–15 分鐘']};
+    if(sum>=65) return {level:'輕度受限',tips:['加入閉鎖鏈訓練（階梯/深蹲），疼痛≦3/10','調整跑跳頻率，先練髖膝控制','2–4 週若未改善，諮詢專業']};
+    if(sum>=45) return {level:'中度受限',tips:['暫減深屈膝/下樓/跳躍負荷','規劃 6–8 週肌力計畫：股四頭肌、臀中肌、核心','評估鞋墊、貼紮或護具']};
+    return {level:'重度受限',tips:['避免引發劇痛的活動，改低衝擊（腳踏車/游泳）','安排門診評估：軟骨/髕股力學/脫臼史','依醫囑安排影像或進一步處置']};
+  }
+
+  function calc(){
+    const checked = document.querySelectorAll('input[type=radio]:checked');
+    let sum = 0; const answered = new Set();
+    checked.forEach(i=>{ sum += Number(i.value); answered.add(i.name); });
+
+    // 上方狀態條仍即時顯示已作答題數（可保留供使用者參考）
+    scoreEl.textContent = answered.size === QUESTIONS.length ? sum : sum; // 可改成 0 想要完全不顯示
+    hintEl.textContent  = `已答 ${answered.size} / ${QUESTIONS.length} 題`;
+    thumbEl.style.left  = `${Math.max(0, Math.min(100, sum))}%`;
+
+    // —— 結果解讀規則：未滿 13 題「不計分」，不顯示合計 ——
+    adviceList.innerHTML='';
+    if(answered.size !== QUESTIONS.length){
+      resultText.textContent = '尚未完成 13 題，未計分。請先完成所有題目。';
+      resultTotal.textContent = '總分：-- / 100';
+      return;
+    }
+
+    // 全部作答後才顯示總分與建議
+    resultTotal.textContent = `總分：${sum} / 100`;
+    const itp = getInterpretation(sum);
+    resultText.textContent = `分級：${itp.level}`;
+    itp.tips.forEach(t=>{ const li=document.createElement('li'); li.textContent=t; adviceList.appendChild(li); });
+  }
+
+  // 追蹤（localStorage）
+  const KEY='akpsHistory';
+  function renderHistory(){
+    const arr = JSON.parse(localStorage.getItem(KEY)||'[]');
+    if(arr.length===0){ historyWrap.innerHTML = '<span class="hint">目前沒有追蹤紀錄。</span>'; return; }
+    const rows = arr.map(r=>`<tr><td>${r.date}</td><td>${r.score}</td></tr>`).join('');
+    historyWrap.innerHTML = `<table class="table"><thead><tr><th>日期</th><th>AKPS 分數</th></tr></thead><tbody>${rows}</tbody></table>`;
+  }
+  function saveRecord(){
+    const score = Number(scoreEl.textContent||0);
+    const today = new Date().toISOString().slice(0,10);
+    const arr = JSON.parse(localStorage.getItem(KEY)||'[]');
+    arr.push({date:today,score});
+    localStorage.setItem(KEY, JSON.stringify(arr));
+    renderHistory();
+  }
+  function clearHistory(){ localStorage.removeItem(KEY); renderHistory(); }
+
+  function attach(){
+    document.addEventListener('change', e=>{ if(e.target && e.target.matches('input[type=radio]')) calc(); });
+    document.getElementById('resetBtn').addEventListener('click',()=>{ document.querySelectorAll('input[type=radio]').forEach(i=>i.checked=false); calc(); window.scrollTo({top:0,behavior:'smooth'}); });
+    document.getElementById('printBtn').addEventListener('click',()=>window.print());
+    document.getElementById('saveRecord').addEventListener('click',saveRecord);
+    document.getElementById('clearHistory').addEventListener('click',()=>{ if(confirm('確定要清除追蹤紀錄？')) clearHistory(); });
+  }
+
+  // 初始化
+  (function init(){
+    render();
+    attach();
+    calc();
+    renderHistory();
+  })();
+  </script>
+</body>
+</html>
